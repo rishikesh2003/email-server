@@ -1,0 +1,19 @@
+{
+  "name": "email-server",
+  "version": "1.0.0",
+  "description": "Custom built email server for email forwarding",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index",
+    "dev-start": "nodemon index"
+  },
+  "author": "Rishikesh S",
+  "license": "ISC",
+  "dependencies": {
+    "aws-serverless-express": "^3.4.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.2",
+    "express": "^4.18.2",
+    "nodemailer": "^6.9.8"
+  }
+}
