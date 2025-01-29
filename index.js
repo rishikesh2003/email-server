@@ -1,65 +1,57 @@
-const nodemailer = require("nodemailer");
 const express = require("express");
-const recipients = require("./config");
+const nodemailer = require("nodemailer");
 const cors = require("cors");
+const recipients = require("./config");
 require("dotenv").config();
 
-let transporter = nodemailer.createTransport({
+// Configure the email transporter using Gmail SMTP
+const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 465,
   secure: true,
   auth: {
-    user: process.env.USER,
-    pass: process.env.PASS,
+    user: process.env.USER, // Email account username from environment variables
+    pass: process.env.PASS, // Email account password (App Password recommended)
   },
 });
 
 const app = express();
-app.use(express.json());
-app.use(cors());
+app.use(express.json()); // Middleware to parse JSON request bodies
+app.use(cors()); // Enable CORS for cross-origin requests
 
+// Health check endpoint to verify server status
 app.get("/status", (req, res) => {
   res.send("Email server is up and running");
 });
 
+// Endpoint to send an email
 app.post("/send-email", (req, res) => {
-  const to = req.query.email;
+  const to = req.query.email; // Retrieve recipient email from query parameter
+  if (!to) return res.status(400).send("Invalid email");
 
-  if (!to) {
-    return res.send("Invalid email");
-  }
+  const recipient = recipients.find((client) => client.to === to); // Validate recipient
+  if (!recipient) return res.status(404).send("Recipient not found");
 
-  const requestData = req.body;
-  let mailBody = "";
-  // this structures the data as example
-  // name: test
-  // email: test@gmail.com
-  for (const key in requestData) {
-    if (requestData.hasOwnProperty(key)) {
-      const value = requestData[key];
-      mailBody += `${key}: ${value}\n`;
-    }
-  }
+  // Construct email body from request JSON
+  const mailBody = Object.entries(req.body)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join("\n");
 
-  const recipient = recipients.find((client) => client.to === to);
-
-  if (!recipient) {
-    return res.send("Invalid email");
-  }
-
+  // Define email options
   const mailOptions = {
-    from: process.env.FROM_EMAIL,
-    to: to, // Recipient address
-    subject: recipient.website + " Form Submission!",
-    text: mailBody,
+    from: process.env.FROM_EMAIL, // Sender email
+    to, // Recipient email
+    subject: `${recipient.website} Form Submission!`, // Email subject
+    text: mailBody, // Email content
   };
 
-  // Send the email
+  // Send email using Nodemailer
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) {
-      return console.error(error);
+      console.error(error);
+      return res.status(500).send("Error sending email"); // Return error response if email fails
     }
-    res.send("Email sent!");
+    res.send("Email sent successfully"); // Return success response
   });
 });
 
